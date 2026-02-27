@@ -59,11 +59,11 @@ async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
                 voice_id=voice_id,
                 model_id="eleven_multilingual_v2",
                 voice_settings=VoiceSettings(
-                    stability=0.5,
+                    stability=0.4,
                     similarity_boost=0.8,
                     style=0.0,
                     use_speaker_boost=True,
-                    speed=0.5
+                    speed=0.55
                 )
             )
 
@@ -121,7 +121,7 @@ async def generate_response(user_input, role):
             return response.text
         except Exception as e:
             st.session_state.ai_model = "gemini_2"
-    elif st.session_state.ai_model == "gemini_2":
+    if st.session_state.ai_model == "gemini_2":
 
         try:
 
@@ -137,7 +137,7 @@ async def generate_response(user_input, role):
 
         except Exception as e:
             st.session_state.ai_model = "gemini_3"
-    elif st.session_state.ai_model == "gemini_3":
+    if st.session_state.ai_model == "gemini_3":
 
         try:
 
@@ -221,31 +221,31 @@ voice_map = {
     "chef": {
         "name": "Amélie",
         "edge-tts": "fr-FR-DeniseNeural",
-        "elevenlabs": "21m00Tcm4llvDq8ikWAM"
+        "elevenlabs": "hpp4J3VqNfWAUOO0d1Us"
     },
     "city": {
         "name": "Julien",
         "edge-tts": "fr-FR-HenriNeural",
-        "elevenlabs": "pNInz6obpguenuvjuc9r"
+        "elevenlabs": "iP95p4xoKVk53GoZ742B"
     },
     "history": {
         "name": "Béatrice",
         "edge-tts": "fr-CA-SylvieNeural",
-        "elevenlabs": "MF3mGyEYCl7XYW7Lec9M"
+        "elevenlabs": "EXAVITQu4vr4xnSDxMaL"
     },
     "nature": {
         "name": "Étienne",
         "edge-tts": "fr-BE-GerardNeural",
-        "elevenlabs": "onwK4e9ZLuTAKqzvW80D"
+        "elevenlabs": "SAz9YHcvj6GT2YYXdXww"
     },
     "music": {
         "name": "Jacques",
         "edge-tts": "fr-FR-RemyMultilingualNeural",
-        "elevenlabs": "ErXw7O68Z9Y3v7W9vE2X"
+        "elevenlabs": "CwhRBWXzGAHq8TQ4Fs17"
     },
     "art": {
         "name": "Margaux",
         "edge-tts": "fr-CH-ArianeNeural",
-        "elevenlabs": "AZnzlk1XhxPjt8VGj9S8"
+        "elevenlabs": "Xb7hH8MSUJpSbSDYk0k2"
     }
 }
