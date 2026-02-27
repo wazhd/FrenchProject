@@ -28,13 +28,13 @@ with open("music-instructions.txt", "r") as file:
 with open("nature-instructions.txt", "r") as file:
     nature_instructions = file.read()
 
-token = os.getenv("HF_TOKEN")
-gemini_api_key_1 = os.getenv("GEMINI_API_KEY_1")
-gemini_api_key_2 = os.getenv("GEMINI_API_KEY_2")
-gemini_api_key_3 = os.getenv("GEMINI_API_KEY_3")
+token = os.environ.get("HF_TOKEN")
+gemini_api_key_1 = os.environ.get("GEMINI_API_KEY_1")
+gemini_api_key_2 = os.environ.get("GEMINI_API_KEY_2")
+gemini_api_key_3 = os.environ.get("GEMINI_API_KEY_3")
 
-elevenlabs_api_key_1= os.getenv("ELEVENLABS_API_KEY_1")
-elevenlabs_api_key_2 = os.getenv("ELEVENLABS_API_KEY_2")
+elevenlabs_api_key_1= os.environ.get("ELEVENLABS_API_KEY_1")
+elevenlabs_api_key_2 = os.environ.get("ELEVENLABS_API_KEY_2")
 
 gemini_client_1 = genai.Client(api_key=gemini_api_key_1)
 gemini_client_2 = genai.Client(api_key=gemini_api_key_2)
