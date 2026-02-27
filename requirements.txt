@@ -3,3 +3,4 @@ python-dotenv
 edge-tts
 elevenlabs
 google-genai
+gradio_client
