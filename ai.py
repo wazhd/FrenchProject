@@ -4,7 +4,6 @@ import edge_tts
 import streamlit as st
 from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
-from gradio_client import Client
 import google.genai as genai
 from elevenlabs.client import AsyncElevenLabs
 from google.genai import types
@@ -30,13 +29,16 @@ with open("nature-instructions.txt", "r") as file:
     nature_instructions = file.read()
 
 token = os.getenv("HF_TOKEN")
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_api_key_1 = os.getenv("GEMINI_API_KEY_1")
+gemini_api_key_2 = os.getenv("GEMINI_API_KEY_2")
+gemini_api_key_3 = os.getenv("GEMINI_API_KEY_3")
+
 elevenlabs_api_key_1= os.getenv("ELEVENLABS_API_KEY_1")
 elevenlabs_api_key_2 = os.getenv("ELEVENLABS_API_KEY_2")
 
-gemini_client = genai.Client(api_key=gemini_api_key)
-llama_client = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token)
-
+gemini_client_1 = genai.Client(api_key=gemini_api_key_1)
+gemini_client_2 = genai.Client(api_key=gemini_api_key_2)
+gemini_client_3 = genai.Client(api_key=gemini_api_key_3)
 
 
 elevenlabs_client_1 = AsyncElevenLabs(api_key=elevenlabs_api_key_1)
@@ -44,9 +46,9 @@ elevenlabs_client_2 = AsyncElevenLabs(api_key=elevenlabs_api_key_2)
 
 
 if "ai_model" not in st.session_state:
-    st.session_state.ai_model = "gemini"
+    st.session_state.ai_model = "gemini_1"
 if "voice_model" not in st.session_state:
-    st.session_state.voice_model = "elevenlabs"
+    st.session_state.voice_model = "elevenlabs_1"
 
 async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
 
@@ -80,11 +82,11 @@ async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
                 voice_id=voice_id,
                 model_id="eleven_multilingual_v2",
                 voice_settings=VoiceSettings(
-                    stability=0.5,
+                    stability=0.4,
                     similarity_boost=0.8,
                     style=0.0,
                     use_speaker_boost=True,
-                    speed=0.5
+                    speed=0.55
                 )
             )
 
@@ -105,42 +107,53 @@ async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
             return output_path
         except Exception as e:
             st.error("Désolé, un problème est survenu. Veuillez réessayer plus tard.")
+            print(str(e))
             return None
 
 
 async def generate_response(user_input, role):
-    if st.session_state.ai_model == "gemini":
+    if st.session_state.ai_model == "gemini_1":
         try:
             config = types.GenerateContentConfig(
                 system_instruction=role, temperature=0.7)
-            chat = gemini_client.aio.chats.create(model="gemini-3-flash-preview", config=config)
+            chat = gemini_client_1.aio.chats.create(model="gemini-3-flash-preview", config=config)
             response = await chat.send_message(user_input)
             return response.text
         except Exception as e:
-            print(str(e))
-            st.session_state.ai_model = "llama"
+            st.session_state.ai_model = "gemini_2"
+    elif st.session_state.ai_model == "gemini_2":
 
-    if st.session_state.ai_model == "llama":
         try:
-            result = await asyncio.to_thread(
-                llama_client.predict,
-                message=f"{role}. Respond only in French. User says: {user_input}",
-                max_new_tokens=1024,
-                temperature=0.7,
-                top_p=0.9,
-                top_k=50,
-                repetition_penalty=1.2,
-                api_name="/chat"
-            )
-            return result
+
+            config = types.GenerateContentConfig(
+
+                system_instruction=role, temperature=0.7)
+
+            chat = gemini_client_2.aio.chats.create(model="gemini-3-flash-preview", config=config)
+
+            response = await chat.send_message(user_input)
+
+            return response.text
+
         except Exception as e:
+            st.session_state.ai_model = "gemini_3"
+    elif st.session_state.ai_model == "gemini_3":
+
+        try:
+
+            config = types.GenerateContentConfig(
+
+                system_instruction=role, temperature=0.7)
+
+            chat = gemini_client_3.aio.chats.create(model="gemini-3-flash-preview", config=config)
+
+            response = await chat.send_message(user_input)
+
+            return response.text
+
+        except Exception as e:
+
             return "Désolé, je ne peux pas répondre pour le moment."
-
-
-async def generate_speech(user_input, voice_id, role):
-    text_response = await generate_response(user_input, role)
-
-    return await generate_voice(text_response, voice_id)
 
 
 def render_tour_guide(user_question_text, key):
@@ -154,17 +167,15 @@ def render_tour_guide(user_question_text, key):
     with left:
         st.image(f"assets/{key}.jpg")
         user_question = st.text_input(user_question_text)
-        ask_button = st.button("Ask", use_container_width=True)
+        ask_button = st.button("Demander", use_container_width=True)
 
     with right:
         chat_box = st.container(height=500, border=True)
         text_placeholder = chat_box.empty()
         spinner_placeholder = chat_box.empty()
 
-    new_response = None
-
     if ask_button and user_question:
-        st.session_state[chat_key] += f"**YOU:** {user_question}\n\n"
+        st.session_state[chat_key] += f"**TOI:** {user_question}\n\n"
         text_placeholder.markdown(st.session_state[chat_key])
 
         with spinner_placeholder:
@@ -178,7 +189,13 @@ def render_tour_guide(user_question_text, key):
                     "nature": nature_instructions
                 }
 
-                new_response = asyncio.run(generate_response(user_question, instructions_map[key]))
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                new_response = loop.run_until_complete(generate_response(user_question, instructions_map[key]))
 
                 st.session_state.current_audio = asyncio.run(generate_voice(
                     new_response,
@@ -196,7 +213,7 @@ def render_tour_guide(user_question_text, key):
     if st.session_state.get("current_audio"):
         st.audio(st.session_state.current_audio, autoplay=True)
 
-    if st.button("Return"):
+    if st.button("Retour"):
         st.session_state.page = "menu"
         st.session_state.current_audio = None
         st.rerun()
