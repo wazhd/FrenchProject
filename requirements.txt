@@ -1,0 +1,6 @@
+streamlit
+python-dotenv
+edge-tts
+elevenlabs
+gradio_client
+google-genai
