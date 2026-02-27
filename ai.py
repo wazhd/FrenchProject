@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
 import google.genai as genai
 from elevenlabs.client import AsyncElevenLabs
+from gradio_client import Client
 from google.genai import types
 
 load_dotenv()
@@ -39,6 +40,8 @@ elevenlabs_api_key_2 = os.environ.get("ELEVENLABS_API_KEY_2")
 gemini_client_1 = genai.Client(api_key=gemini_api_key_1)
 gemini_client_2 = genai.Client(api_key=gemini_api_key_2)
 gemini_client_3 = genai.Client(api_key=gemini_api_key_3)
+
+llama_client = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token)
 
 
 elevenlabs_client_1 = AsyncElevenLabs(api_key=elevenlabs_api_key_1)
@@ -152,7 +155,21 @@ async def generate_response(user_input, role):
             return response.text
 
         except Exception as e:
-
+            st.session_state.ai_model == "llama"
+    if st.session_state.ai_model == "llama":
+        try:
+            result = await asyncio.to_thread(
+                llama_client.predict,
+                message=f"{role}. Respond only in French. User says: {user_input}",
+                max_new_tokens=1024,
+                temperature=0.7,
+                top_p=0.9,
+                top_k=50,
+                repetition_penalty=1.2,
+                api_name="/chat"
+            )
+            return result
+        except Exception as e:
             return "Désolé, je ne peux pas répondre pour le moment."
 
 
