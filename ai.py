@@ -29,11 +29,24 @@ with open("music-instructions.txt", "r") as file:
 with open("nature-instructions.txt", "r") as file:
     nature_instructions = file.read()
 
+llama_client = True
+obliteratus_client = True
+
 token_1 = os.environ.get("HF_TOKEN")
 token_2 = os.environ.get("HF_TOKEN_2")
+try:
+    llama_client_1 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_1)
+    llama_client_2 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_2)
+except Exception as e:
+    llama_client = False
 
-llama_client_1 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_1)
-llama_client_2 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_2)
+try:
+
+    obliteratus_client_1 = Client("pliny-the-prompter/obliteratus", token=token_1)
+    obliteratus_client_2 = Client("pliny-the-prompter/obliteratus", token=token_2)
+
+except Exception as e:
+    llama_client = False
 
 
 
@@ -111,11 +124,11 @@ async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
             st.error("Audio generation failed completely.")
             return None
 
-async def generate_response(user_input, role):
+async def generate_response(user_input, role, history):
     if st.session_state.ai_model == "gemini_1":
         try:
             config = types.GenerateContentConfig(
-                system_instruction=role, temperature=0.7)
+                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
             chat = gemini_client_1.aio.chats.create(model="gemini-3-flash-preview", config=config)
             response = await chat.send_message(user_input)
             return response.text
@@ -127,7 +140,7 @@ async def generate_response(user_input, role):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role, temperature=0.7)
+                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
 
             chat = gemini_client_2.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -143,7 +156,7 @@ async def generate_response(user_input, role):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role, temperature=0.7)
+                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
 
             chat = gemini_client_3.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -159,7 +172,7 @@ async def generate_response(user_input, role):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role, temperature=0.7)
+                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
 
             chat = gemini_client_4.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -170,38 +183,72 @@ async def generate_response(user_input, role):
         except Exception as e:
             st.session_state.ai_model = "llama_1"
 
-    if st.session_state.ai_model == "llama_1":
-        try:
-            result = await asyncio.to_thread(
-                llama_client_1.predict,
-                message=f"{role}. Respond only in French. User says: {user_input}",
-                max_new_tokens=1024,
-                temperature=0.7,
-                top_p=0.9,
-                top_k=50,
-                repetition_penalty=1.2,
-                api_name="/chat"
-            )
-            return result
-        except Exception as e:
-            st.session_state.ai_model = "llama_2"
+    if llama_client:
+        if st.session_state.ai_model == "llama_1":
+            try:
+                result = await asyncio.to_thread(
+                    llama_client_1.predict(
+                    message=f"{role} + || Chat History: {history}. Respond only in French. User says: {user_input}",
+                    max_new_tokens=1024,
+                    temperature=0.7,
+                    top_p=0.9,
+                    top_k=50,
+                    repetition_penalty=1.2,
+                    api_name="/chat"
+                ))
+                return result
+            except Exception as e:
+                st.session_state.ai_model = "llama_2"
 
 
-    if st.session_state.ai_model == "llama_2":
-        try:
-            result = await asyncio.to_thread(
-                llama_client_2.predict,
-                message=f"{role}. Respond only in French. User says: {user_input}",
-                max_new_tokens=1024,
-                temperature=0.7,
-                top_p=0.9,
-                top_k=50,
-                repetition_penalty=1.2,
-                api_name="/chat"
-            )
-            return result
-        except Exception as e:
-            return "Désolé, je ne peux pas répondre pour le moment."
+        if st.session_state.ai_model == "llama_2":
+            try:
+                result = await asyncio.to_thread(
+                    llama_client_2.predict(
+                    message=f"{role} + || Chat History: {history}. Respond only in French. User says: {user_input}",
+                    max_new_tokens=1024,
+                    temperature=0.7,
+                    top_p=0.9,
+                    top_k=50,
+                    repetition_penalty=1.2,
+                    api_name="/chat"
+                ))
+                return result
+            except Exception as e:
+                st.session_state.ai_model = "obliteratus_1"
+    if obliteratus_client:
+        if st.session_state.ai_model == "obliteratus_1":
+            try:
+                result = await asyncio.to_thread(
+                    obliteratus_client_1.predict(
+                    message=user_input,
+                    param_2=role + "|| Chat History: " + history,
+                    param_3=0.7,
+                    param_4=0.9,
+                    param_5=512,
+                    param_6=1,
+                    param_7=2048,
+                    api_name="/chat"
+                ))
+                return result
+            except Exception as e:
+                st.session_state.ai_model = "obliteratus_2"
+        if st.session_state.ai_model == "obliteratus_2":
+            try:
+                result = await asyncio.to_thread(
+                    obliteratus_client_2.predict(
+                    message=user_input,
+                    param_2=role + "|| Chat History: " + history,
+                    param_3=0.7,
+                    param_4=0.9,
+                    param_5=512,
+                    param_6=1,
+                    param_7=2048,
+                    api_name="/chat"
+                ))
+                return result
+            except Exception as e:
+                return "Désolé, je ne peux pas répondre pour le moment."
 
 def render_tour_guide(user_question_text, key):
     st.title(voice_map[key]["name"])
@@ -210,6 +257,8 @@ def render_tour_guide(user_question_text, key):
         st.session_state[chat_key] = ""
 
     left, right = st.columns([1, 2])
+    st.write("Ai Model: " + st.session_state.ai_model)
+    st.write("Voice Model: " + st.session_state.voice_model)
 
     with left:
         st.image(f"assets/{key}.jpg")
@@ -242,7 +291,7 @@ def render_tour_guide(user_question_text, key):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
 
-                new_response = loop.run_until_complete(generate_response(user_question, instructions_map[key]))
+                new_response = loop.run_until_complete(generate_response(user_question, instructions_map[key], st.session_state[chat_key]))
 
                 st.session_state.current_audio = asyncio.run(generate_voice(
                     new_response,
