@@ -30,7 +30,7 @@ with open("nature-instructions.txt", "r") as file:
     nature_instructions = file.read()
 
 llama_client = True
-obliteratus_client = True
+gemma_client = True
 
 token_1 = os.environ.get("HF_TOKEN")
 token_2 = os.environ.get("HF_TOKEN_2")
@@ -41,12 +41,11 @@ except Exception as e:
     llama_client = False
 
 try:
-
-    obliteratus_client_1 = Client("pliny-the-prompter/obliteratus", token=token_1)
-    obliteratus_client_2 = Client("pliny-the-prompter/obliteratus", token=token_2)
+    gemma_client_1 = Client("huggingface-projects/gemma-3-12b-it", token=token_1)
+    gemma_client_2 = Client("huggingface-projects/gemma-3-12b-it", token=token_2)
 
 except Exception as e:
-    llama_client = False
+    gemma_client = False
 
 
 
@@ -66,12 +65,6 @@ gemini_client_4 = genai.Client(api_key=gemini_api_key_4)
 
 elevenlabs_client_1 = AsyncElevenLabs(api_key=elevenlabs_api_key_1)
 elevenlabs_client_2 = AsyncElevenLabs(api_key=elevenlabs_api_key_2)
-
-
-if "ai_model" not in st.session_state:
-    st.session_state.ai_model = "gemini_1"
-if "voice_model" not in st.session_state:
-    st.session_state.voice_model = "elevenlabs_1"
 
 
 async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
@@ -140,7 +133,7 @@ async def generate_response(user_input, role, history):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
+                system_instruction=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French.", temperature=0.7)
 
             chat = gemini_client_2.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -156,7 +149,7 @@ async def generate_response(user_input, role, history):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
+                system_instruction=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French.", temperature=0.7)
 
             chat = gemini_client_3.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -172,7 +165,7 @@ async def generate_response(user_input, role, history):
 
             config = types.GenerateContentConfig(
 
-                system_instruction=role + "|| Chat History: " + history, temperature=0.7)
+                system_instruction=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French.", temperature=0.7)
 
             chat = gemini_client_4.aio.chats.create(model="gemini-3-flash-preview", config=config)
 
@@ -187,15 +180,15 @@ async def generate_response(user_input, role, history):
         if st.session_state.ai_model == "llama_1":
             try:
                 result = await asyncio.to_thread(
-                    llama_client_1.predict(
-                    message=f"{role} + || Chat History: {history}. Respond only in French. User says: {user_input}",
+                    llama_client_1.predict,
+                    message=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French. User says: {user_input}",
                     max_new_tokens=1024,
                     temperature=0.7,
                     top_p=0.9,
                     top_k=50,
                     repetition_penalty=1.2,
-                    api_name="/chat"
-                ))
+                    api_name="/generate"
+                )
                 return result
             except Exception as e:
                 st.session_state.ai_model = "llama_2"
@@ -204,52 +197,45 @@ async def generate_response(user_input, role, history):
         if st.session_state.ai_model == "llama_2":
             try:
                 result = await asyncio.to_thread(
-                    llama_client_2.predict(
-                    message=f"{role} + || Chat History: {history}. Respond only in French. User says: {user_input}",
+                    llama_client_2.predict,
+                    message=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French. User says: {user_input}",
                     max_new_tokens=1024,
                     temperature=0.7,
                     top_p=0.9,
                     top_k=50,
                     repetition_penalty=1.2,
-                    api_name="/chat"
-                ))
+                    api_name="/generate"
+                )
                 return result
             except Exception as e:
-                st.session_state.ai_model = "obliteratus_1"
-    if obliteratus_client:
-        if st.session_state.ai_model == "obliteratus_1":
+                st.session_state.ai_model = "gemma_1"
+    if gemma_client:
+        if st.session_state.ai_model == "gemma_1":
             try:
                 result = await asyncio.to_thread(
-                    obliteratus_client_1.predict(
-                    message=user_input,
-                    param_2=role + "|| Chat History: " + history,
-                    param_3=0.7,
-                    param_4=0.9,
-                    param_5=512,
-                    param_6=1,
-                    param_7=2048,
-                    api_name="/chat"
-                ))
+                    gemma_client_1.predict,
+                    message={"text": user_input, "files": []},
+                    system_prompt=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French.",
+                    max_new_tokens=700,
+                    api_name="/run"
+                )
+
                 return result
             except Exception as e:
-                st.session_state.ai_model = "obliteratus_2"
-        if st.session_state.ai_model == "obliteratus_2":
+                st.session_state.ai_model = "gemma_2"
+
+        if st.session_state.ai_model == "gemma_2":
             try:
                 result = await asyncio.to_thread(
-                    obliteratus_client_2.predict(
-                    message=user_input,
-                    param_2=role + "|| Chat History: " + history,
-                    param_3=0.7,
-                    param_4=0.9,
-                    param_5=512,
-                    param_6=1,
-                    param_7=2048,
-                    api_name="/chat"
-                ))
+                    gemma_client_2.predict,
+                    message={"text": user_input, "files": []},
+                    system_prompt=f"REMEMBER THESE INSTRUCTIONS VERY CAREFULLY: {role} + \n\n Chat History: {history}. \n\n Respond only in French.",
+                    max_new_tokens=700,
+                    api_name="/run"
+                )
                 return result
             except Exception as e:
                 return "Désolé, je ne peux pas répondre pour le moment."
-
 def render_tour_guide(user_question_text, key):
     st.title(voice_map[key]["name"])
     chat_key = f"chat_log_{key}"
@@ -285,19 +271,15 @@ def render_tour_guide(user_question_text, key):
                     "nature": nature_instructions
                 }
 
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+                async def process_chat():
+                    text = await generate_response(user_question, instructions_map[key], st.session_state[chat_key])
+                    if not text:
+                        text = "Désolé, je ne peux pas répondre pour le moment."
 
-                new_response = loop.run_until_complete(generate_response(user_question, instructions_map[key], st.session_state[chat_key]))
+                    audio = await generate_voice(text, voice_map[key]["elevenlabs"], voice_map[key]["edge-tts"])
+                    return text, audio
 
-                st.session_state.current_audio = asyncio.run(generate_voice(
-                    new_response,
-                    voice_id=voice_map[key]["elevenlabs"],
-                    edge_id=voice_map[key]["edge-tts"]
-                ))
+                new_response, st.session_state.current_audio = asyncio.run(process_chat())
 
         spinner_placeholder.empty()
         st.session_state[chat_key] += f"**{voice_map[key]['name'].upper()}:** {new_response}\n\n---\n\n"
