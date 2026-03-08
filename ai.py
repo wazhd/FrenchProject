@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
 import google.genai as genai
 from elevenlabs.client import AsyncElevenLabs
-from gradio_client import Client
 from google.genai import types
+from gradio_client import Client
 
 load_dotenv()
 
@@ -29,10 +29,18 @@ with open("music-instructions.txt", "r") as file:
 with open("nature-instructions.txt", "r") as file:
     nature_instructions = file.read()
 
-token = os.environ.get("HF_TOKEN")
+token_1 = os.environ.get("HF_TOKEN")
+token_2 = os.environ.get("HF_TOKEN_2")
+
+llama_client_1 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_1)
+llama_client_2 = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token_2)
+
+
+
 gemini_api_key_1 = os.environ.get("GEMINI_API_KEY_1")
 gemini_api_key_2 = os.environ.get("GEMINI_API_KEY_2")
 gemini_api_key_3 = os.environ.get("GEMINI_API_KEY_3")
+gemini_api_key_4 = os.environ.get("GEMINI_API_KEY_4")
 
 elevenlabs_api_key_1= os.environ.get("ELEVENLABS_API_KEY_1")
 elevenlabs_api_key_2 = os.environ.get("ELEVENLABS_API_KEY_2")
@@ -40,8 +48,7 @@ elevenlabs_api_key_2 = os.environ.get("ELEVENLABS_API_KEY_2")
 gemini_client_1 = genai.Client(api_key=gemini_api_key_1)
 gemini_client_2 = genai.Client(api_key=gemini_api_key_2)
 gemini_client_3 = genai.Client(api_key=gemini_api_key_3)
-
-llama_client = Client("huggingface-projects/llama-3.2-3B-Instruct", token=token)
+gemini_client_4 = genai.Client(api_key=gemini_api_key_4)
 
 
 elevenlabs_client_1 = AsyncElevenLabs(api_key=elevenlabs_api_key_1)
@@ -53,66 +60,56 @@ if "ai_model" not in st.session_state:
 if "voice_model" not in st.session_state:
     st.session_state.voice_model = "elevenlabs_1"
 
-async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
 
+async def generate_voice(text, voice_id, edge_id, output_path="speech.mp3"):
     if st.session_state.voice_model == "elevenlabs_1":
         try:
-            audio = await elevenlabs_client_1.text_to_speech.convert(
+            response = elevenlabs_client_1.text_to_speech.convert(
                 text=text,
                 voice_id=voice_id,
-                model_id="eleven_multilingual_v2",
-                voice_settings=VoiceSettings(
-                    stability=0.4,
-                    similarity_boost=0.8,
-                    style=0.0,
-                    use_speaker_boost=True,
-                    speed=0.55
-                )
+                model_id="eleven_v3",
+                voice_settings=VoiceSettings(stability=0.4, similarity_boost=0.8, speed=0.7),
+                output_format="mp3_44100_128",
             )
 
             with open(output_path, "wb") as f:
-                async for chunk in audio:
+                async for chunk in response:
                     if chunk:
                         f.write(chunk)
-            return output_path
+
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
         except Exception as e:
             st.session_state.voice_model = "elevenlabs_2"
 
     if st.session_state.voice_model == "elevenlabs_2":
         try:
-            audio = await elevenlabs_client_2.text_to_speech.convert(
+            response = elevenlabs_client_2.text_to_speech.convert(
                 text=text,
                 voice_id=voice_id,
-                model_id="eleven_multilingual_v2",
-                voice_settings=VoiceSettings(
-                    stability=0.4,
-                    similarity_boost=0.8,
-                    style=0.0,
-                    use_speaker_boost=True,
-                    speed=0.55
-                )
+                model_id="eleven_v3",
+                voice_settings=VoiceSettings(stability=0.4, similarity_boost=0.8, speed=0.7),
+                output_format="mp3_44100_128",
             )
-
             with open(output_path, "wb") as f:
-                async for chunk in audio:
+                async for chunk in response:
                     if chunk:
                         f.write(chunk)
-            return output_path
+
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
         except Exception as e:
             st.session_state.voice_model = "edge"
 
 
     if st.session_state.voice_model == "edge":
         try:
-
             communicate = edge_tts.Communicate(text, edge_id)
             await communicate.save(output_path)
             return output_path
         except Exception as e:
-            st.error("Désolé, un problème est survenu. Veuillez réessayer plus tard.")
-            print(str(e))
+            st.error("Audio generation failed completely.")
             return None
-
 
 async def generate_response(user_input, role):
     if st.session_state.ai_model == "gemini_1":
@@ -155,11 +152,45 @@ async def generate_response(user_input, role):
             return response.text
 
         except Exception as e:
-            st.session_state.ai_model == "llama"
-    if st.session_state.ai_model == "llama":
+
+            st.session_state.ai_model = "gemini_4"
+    if st.session_state.ai_model == "gemini_4":
+        try:
+
+            config = types.GenerateContentConfig(
+
+                system_instruction=role, temperature=0.7)
+
+            chat = gemini_client_4.aio.chats.create(model="gemini-3-flash-preview", config=config)
+
+            response = await chat.send_message(user_input)
+
+            return response.text
+
+        except Exception as e:
+            st.session_state.ai_model = "llama_1"
+
+    if st.session_state.ai_model == "llama_1":
         try:
             result = await asyncio.to_thread(
-                llama_client.predict,
+                llama_client_1.predict,
+                message=f"{role}. Respond only in French. User says: {user_input}",
+                max_new_tokens=1024,
+                temperature=0.7,
+                top_p=0.9,
+                top_k=50,
+                repetition_penalty=1.2,
+                api_name="/chat"
+            )
+            return result
+        except Exception as e:
+            st.session_state.ai_model = "llama_2"
+
+
+    if st.session_state.ai_model == "llama_2":
+        try:
+            result = await asyncio.to_thread(
+                llama_client_2.predict,
                 message=f"{role}. Respond only in French. User says: {user_input}",
                 max_new_tokens=1024,
                 temperature=0.7,
@@ -171,7 +202,6 @@ async def generate_response(user_input, role):
             return result
         except Exception as e:
             return "Désolé, je ne peux pas répondre pour le moment."
-
 
 def render_tour_guide(user_question_text, key):
     st.title(voice_map[key]["name"])
