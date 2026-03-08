@@ -243,8 +243,6 @@ def render_tour_guide(user_question_text, key):
         st.session_state[chat_key] = ""
 
     left, right = st.columns([1, 2])
-    st.write("Ai Model: " + st.session_state.ai_model)
-    st.write("Voice Model: " + st.session_state.voice_model)
 
     with left:
         st.image(f"assets/{key}.jpg")
