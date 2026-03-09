@@ -6,7 +6,7 @@ st.set_page_config(page_title="Guides de Toronto", layout="wide")
 if "page" not in st.session_state:
     st.session_state.page = "menu"
 if "ai_model" not in st.session_state:
-    st.session_state.ai_model = "gemini_1"
+    st.session_state.ai_model = "llama_1"
 if "voice_model" not in st.session_state:
     st.session_state.voice_model = "elevenlabs_1"
 
