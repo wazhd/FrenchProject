@@ -78,6 +78,11 @@ if st.session_state.page == "menu":
             if st.button("Parler avec Julien", key="btn_julien", use_container_width=True):
                 st.session_state.page = "city"
                 st.rerun()
+    with st.container(border=True):
+        if st.button("Quiz"):
+            ai.quiz
+
+        
 
 elif st.session_state.page == "music":
     ai.render_tour_guide("Posez votre question à Jacques sur la musique à Toronto...", "music")
